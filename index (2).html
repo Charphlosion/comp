@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Composition Book</title>
+<meta name="description" content="A composition book for songs and poetry.">
+<meta name="theme-color" content="#1a1a1e">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Composition">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;1,7..72,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1a1a1e;
+  --marble-white:#e8e5dc;
+  --paper:#f7f3e8;
+  --paper-deep:#efe9d8;
+  --rule-blue:#b7cddd;
+  --margin-red:#c3423f;
+  --pencil:#6b6558;
+  --plaque:#fbf9f2;
+  --display:'Libre Caslon Text',Georgia,serif;
+  --body:'Literata',Georgia,serif;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  font-family:var(--body);
+  background:var(--paper);
+  color:var(--ink);
+  min-height:100vh;
+  overscroll-behavior-y:none;
+}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--margin-red);outline-offset:2px}
+input,select,textarea{font:inherit;color:inherit}
+
+/* ---------- Marble cover header ---------- */
+header.cover{
+  position:relative;
+  background:var(--ink);
+  padding:calc(10px + var(--safe-top)) 16px 14px;
+  color:var(--marble-white);
+}
+header.cover .marble{
+  position:absolute;inset:0;
+  opacity:.55;
+  pointer-events:none;
+}
+.cover-row{
+  position:relative;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  max-width:720px;margin:0 auto;
+}
+.plaque{
+  background:var(--plaque);
+  color:var(--ink);
+  border:1.5px solid var(--ink);
+  border-radius:50% / 26%;
+  padding:8px 26px 9px;
+  text-align:center;
+  box-shadow:0 1px 0 rgba(0,0,0,.4);
+  flex:0 1 auto;
+}
+.plaque h1{
+  font-family:var(--display);
+  font-weight:700;
+  font-size:17px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+}
+.plaque .subtitle{
+  font-family:var(--mono);
+  font-size:9.5px;
+  letter-spacing:.12em;
+  color:var(--pencil);
+  text-transform:uppercase;
+  margin-top:1px;
+}
+.menu-btn{
+  position:absolute;right:0;top:50%;transform:translateY(-50%);
+  width:38px;height:38px;border-radius:8px;
+  color:var(--marble-white);
+  font-size:20px;line-height:1;
+  display:flex;align-items:center;justify-content:center;
+}
+.menu-btn:active{background:rgba(255,255,255,.12)}
+
+/* dropdown menu */
+.menu-pop{
+  position:absolute;right:12px;top:calc(52px + var(--safe-top));
+  background:var(--plaque);
+  color:var(--ink);
+  border:1px solid var(--ink);
+  border-radius:8px;
+  box-shadow:0 8px 24px rgba(0,0,0,.35);
+  z-index:60;
+  min-width:200px;
+  overflow:hidden;
+  display:none;
+}
+.menu-pop.open{display:block}
+.menu-pop button{
+  display:block;width:100%;text-align:left;
+  padding:12px 16px;font-size:14.5px;
+}
+.menu-pop button:not(:last-child){border-bottom:1px solid var(--paper-deep)}
+.menu-pop button:active{background:var(--paper-deep)}
+
+/* ---------- Tabs ---------- */
+nav.tabs{
+  display:flex;
+  background:var(--ink);
+  padding:0 16px;
+  gap:8px;
+  justify-content:center;
+}
+nav.tabs button{
+  font-family:var(--display);
+  font-size:14px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--marble-white);
+  background:#2c2c31;
+  border:1px solid #3a3a40;
+  border-bottom:none;
+  border-radius:10px 10px 0 0;
+  padding:10px 22px 8px;
+  opacity:.75;
+  max-width:340px;
+  flex:1 1 0;
+}
+nav.tabs button[aria-selected="true"]{
+  background:var(--paper);
+  color:var(--ink);
+  opacity:1;
+  border-color:var(--ink);
+  font-weight:700;
+}
+
+/* ---------- Toolbar ---------- */
+.toolbar{
+  max-width:720px;margin:0 auto;
+  padding:14px 16px 6px;
+  display:flex;flex-direction:column;gap:10px;
+}
+.search-row{display:flex;gap:8px}
+.search-row input[type="search"]{
+  flex:1;
+  background:var(--plaque);
+  border:1px solid var(--pencil);
+  border-radius:8px;
+  padding:10px 12px;
+  font-size:16px;
+}
+.search-row input::placeholder{color:var(--pencil);opacity:.8}
+.search-row select{
+  background:var(--plaque);
+  border:1px solid var(--pencil);
+  border-radius:8px;
+  padding:10px 8px;
+  font-family:var(--mono);
+  font-size:12.5px;
+  max-width:46%;
+}
+.filter-row{
+  display:flex;flex-wrap:wrap;gap:6px;align-items:center;
+  min-height:0;
+}
+.filter-label{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--pencil);
+  margin-right:2px;
+}
+.chip{
+  font-family:var(--mono);
+  font-size:12px;
+  border:1px solid var(--pencil);
+  border-radius:999px;
+  padding:5px 12px;
+  background:var(--plaque);
+  color:var(--ink);
+}
+.chip[aria-pressed="true"]{
+  background:var(--ink);
+  color:var(--paper);
+  border-color:var(--ink);
+}
+.swatch{
+  width:26px;height:26px;border-radius:50%;
+  border:1.5px solid rgba(0,0,0,.25);
+  padding:0;
+  position:relative;
+}
+.swatch[aria-pressed="true"]{
+  border-color:var(--ink);
+  box-shadow:0 0 0 2.5px var(--paper), 0 0 0 4px var(--ink);
+}
+.clear-filters{
+  font-family:var(--mono);font-size:11.5px;
+  color:var(--margin-red);
+  text-decoration:underline;
+  padding:4px 6px;
+}
+.count-line{
+  font-family:var(--mono);font-size:11px;color:var(--pencil);
+  padding:0 2px;
+}
+
+/* ---------- Entry list ---------- */
+main{max-width:720px;margin:0 auto;padding:8px 16px calc(96px + var(--safe-bottom))}
+ul.entries{list-style:none;display:flex;flex-direction:column;gap:12px}
+.card{
+  position:relative;
+  background:
+    repeating-linear-gradient(to bottom, transparent 0 27px, var(--rule-blue) 27px 28px),
+    var(--plaque);
+  border:1px solid #d8d2bf;
+  border-radius:4px;
+  box-shadow:0 1px 3px rgba(60,50,30,.14);
+  display:flex;
+  overflow:hidden;
+  text-align:left;
+  width:100%;
+  padding:0;
+}
+.card .spine{
+  flex:0 0 10px;
+  align-self:stretch;
+}
+.card .card-body{
+  flex:1;
+  padding:10px 14px 12px 16px;
+  border-left:1.5px solid var(--margin-red);
+  min-width:0;
+}
+.card h3{
+  font-family:var(--display);
+  font-size:16.5px;
+  font-weight:700;
+  line-height:28px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.card .preview{
+  font-size:13.5px;
+  line-height:28px;
+  color:#3d3a33;
+  height:28px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-style:italic;
+}
+.card .meta{
+  display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;
+  font-family:var(--mono);
+  font-size:10.5px;
+  color:var(--pencil);
+  line-height:28px;
+  height:28px;
+  overflow:hidden;
+}
+.card .meta .tag{
+  background:var(--paper-deep);
+  border-radius:999px;
+  padding:1px 8px;
+  line-height:1.7;
+}
+.empty{
+  text-align:center;
+  padding:48px 20px;
+  color:var(--pencil);
+  font-style:italic;
+  font-size:15px;
+  line-height:1.6;
+}
+
+/* ---------- FAB ---------- */
+.fab{
+  position:fixed;
+  right:20px;
+  bottom:calc(20px + var(--safe-bottom));
+  width:58px;height:58px;
+  border-radius:50%;
+  background:var(--ink);
+  color:var(--paper);
+  font-size:30px;
+  line-height:1;
+  box-shadow:0 4px 14px rgba(0,0,0,.35);
+  display:flex;align-items:center;justify-content:center;
+  z-index:40;
+}
+.fab:active{transform:scale(.94)}
+
+/* ---------- Editor sheet ---------- */
+.editor{
+  position:fixed;inset:0;
+  background:var(--paper);
+  z-index:50;
+  display:none;
+  flex-direction:column;
+}
+.editor.open{display:flex}
+.editor-top{
+  background:var(--ink);
+  color:var(--marble-white);
+  padding:calc(8px + var(--safe-top)) 12px 8px;
+  display:flex;align-items:center;gap:8px;
+}
+.editor-top .etitle{
+  font-family:var(--display);
+  font-size:13px;letter-spacing:.12em;text-transform:uppercase;
+  flex:1;text-align:center;
+}
+.editor-top button{
+  font-family:var(--mono);font-size:12.5px;
+  padding:8px 12px;border-radius:8px;
+  color:var(--marble-white);
+}
+.editor-top button.save{
+  background:var(--margin-red);
+  font-weight:500;
+}
+.editor-scroll{
+  flex:1;overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+}
+.sheet{
+  max-width:720px;margin:0 auto;
+  padding:18px 16px calc(24px + var(--safe-bottom));
+}
+.field-label{
+  font-family:var(--mono);
+  font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--pencil);
+  margin:16px 0 6px;
+}
+.sheet input[type="text"]{
+  width:100%;
+  background:var(--plaque);
+  border:1px solid var(--pencil);
+  border-radius:8px;
+  padding:10px 12px;
+  font-size:17px;
+  font-family:var(--display);
+}
+.sheet textarea{
+  width:100%;
+  min-height:46vh;
+  resize:vertical;
+  border:1px solid #d8d2bf;
+  border-radius:4px;
+  padding:6px 14px 14px 20px;
+  font-size:16px;
+  line-height:30px;
+  background:
+    repeating-linear-gradient(to bottom, transparent 0 29px, var(--rule-blue) 29px 30px),
+    linear-gradient(to right, transparent 0 13px, var(--margin-red) 13px 14.5px, transparent 14.5px),
+    var(--plaque);
+  background-attachment:local,local,local;
+}
+.tag-editor{
+  display:flex;flex-wrap:wrap;gap:6px;align-items:center;
+  background:var(--plaque);
+  border:1px solid var(--pencil);
+  border-radius:8px;
+  padding:8px;
+}
+.tag-editor .tag-chip{
+  font-family:var(--mono);font-size:12.5px;
+  background:var(--paper-deep);
+  border-radius:999px;
+  padding:5px 6px 5px 12px;
+  display:flex;align-items:center;gap:4px;
+}
+.tag-chip button{
+  font-size:14px;line-height:1;color:var(--margin-red);
+  padding:2px 6px;border-radius:50%;
+}
+.tag-editor input{
+  flex:1;min-width:120px;
+  border:none;background:transparent;
+  font-size:15px;padding:6px 4px;
+}
+.tag-editor input:focus-visible{outline:none}
+.tag-suggest{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.tag-suggest button{
+  font-family:var(--mono);font-size:11.5px;
+  border:1px dashed var(--pencil);
+  border-radius:999px;padding:4px 11px;
+  color:var(--pencil);
+}
+.palette{display:flex;flex-wrap:wrap;gap:10px}
+.palette .swatch{width:34px;height:34px}
+.counts{
+  font-family:var(--mono);font-size:11px;color:var(--pencil);
+  margin-top:8px;display:flex;gap:16px;
+}
+.danger-zone{margin-top:28px;text-align:center}
+.danger-zone button{
+  font-family:var(--mono);font-size:12.5px;
+  color:var(--margin-red);
+  border:1px solid var(--margin-red);
+  border-radius:8px;
+  padding:9px 18px;
+}
+
+/* toast */
+.toast{
+  position:fixed;left:50%;bottom:calc(92px + var(--safe-bottom));
+  transform:translateX(-50%) translateY(8px);
+  background:var(--ink);color:var(--paper);
+  font-family:var(--mono);font-size:12.5px;
+  padding:10px 18px;border-radius:999px;
+  opacity:0;pointer-events:none;
+  transition:opacity .25s, transform .25s;
+  z-index:70;
+  max-width:88vw;text-align:center;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+</style>
+</head>
+<body>
+
+<header class="cover">
+  <svg class="marble" width="100%" height="100%" preserveAspectRatio="none" aria-hidden="true">
+    <filter id="marbleF">
+      <feTurbulence type="fractalNoise" baseFrequency="0.012 0.045" numOctaves="4" seed="7" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0.91  0 0 0 0 0.90  0 0 0 0 0.86  6 6 6 -7.6 0"/>
+    </filter>
+    <rect width="100%" height="100%" filter="url(#marbleF)"/>
+  </svg>
+  <div class="cover-row">
+    <div class="plaque">
+      <h1>Composition Book</h1>
+      <div class="subtitle">Songs &amp; Poetry · Wide Ruled</div>
+    </div>
+    <button class="menu-btn" id="menuBtn" aria-label="Menu" aria-expanded="false">⋮</button>
+  </div>
+  <div class="menu-pop" id="menuPop" role="menu">
+    <button id="exportBtn" role="menuitem">Export backup (JSON)</button>
+    <button id="importBtn" role="menuitem">Import backup</button>
+  </div>
+  <input type="file" id="importFile" accept="application/json,.json" hidden>
+</header>
+
+<nav class="tabs" role="tablist" aria-label="Sections">
+  <button role="tab" id="tab-song" aria-selected="true" data-type="song">Songs</button>
+  <button role="tab" id="tab-poem" aria-selected="false" data-type="poem">Poetry</button>
+</nav>
+
+<div class="toolbar">
+  <div class="search-row">
+    <input type="search" id="searchInput" placeholder="Search title, text, tags…" aria-label="Search entries">
+    <select id="sortSelect" aria-label="Sort entries">
+      <option value="created-desc">Newest first</option>
+      <option value="created-asc">Oldest first</option>
+      <option value="updated-desc">Recently edited</option>
+      <option value="title-asc">Title A–Z</option>
+      <option value="title-desc">Title Z–A</option>
+      <option value="chars-desc">Longest first</option>
+      <option value="chars-asc">Shortest first</option>
+    </select>
+  </div>
+  <div class="filter-row" id="tagFilters" hidden>
+    <span class="filter-label">Tags</span>
+  </div>
+  <div class="filter-row" id="colorFilters" hidden>
+    <span class="filter-label">Colours</span>
+  </div>
+  <div class="filter-row" id="clearRow" hidden>
+    <button class="clear-filters" id="clearFilters">Clear filters</button>
+  </div>
+  <div class="count-line" id="countLine"></div>
+</div>
+
+<main>
+  <ul class="entries" id="entryList"></ul>
+  <div class="empty" id="emptyState" hidden></div>
+</main>
+
+<button class="fab" id="fabBtn" aria-label="New entry">+</button>
+
+<!-- Editor -->
+<div class="editor" id="editor" role="dialog" aria-modal="true" aria-labelledby="editorTitle">
+  <div class="editor-top">
+    <button id="cancelBtn">Cancel</button>
+    <div class="etitle" id="editorTitle">New Song</div>
+    <button class="save" id="saveBtn">Save</button>
+  </div>
+  <div class="editor-scroll">
+    <div class="sheet">
+      <div class="field-label">Title</div>
+      <input type="text" id="titleInput" placeholder="Untitled" autocomplete="off">
+
+      <div class="field-label">Text</div>
+      <textarea id="bodyInput" placeholder="Write here…"></textarea>
+      <div class="counts">
+        <span id="charCount">0 characters</span>
+        <span id="wordCount">0 words</span>
+      </div>
+
+      <div class="field-label">Tags</div>
+      <div class="tag-editor" id="tagEditor">
+        <input type="text" id="tagInput" placeholder="Add a tag, press Enter" autocomplete="off" autocapitalize="none">
+      </div>
+      <div class="tag-suggest" id="tagSuggest"></div>
+
+      <div class="field-label">Colour</div>
+      <div class="palette" id="palette" role="radiogroup" aria-label="Entry colour"></div>
+
+      <div class="danger-zone" id="dangerZone" hidden>
+        <button id="deleteBtn">Delete entry</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function(){
+"use strict";
+
+var STORE_KEY = "compbook.v1";
+var COLORS = [
+  {name:"Graphite", hex:"#4a4a52"},
+  {name:"Cardinal", hex:"#c3423f"},
+  {name:"Marigold", hex:"#e0a428"},
+  {name:"Fern",     hex:"#5a7d4f"},
+  {name:"Teal",     hex:"#3f7f83"},
+  {name:"Cornflower",hex:"#4f6fa8"},
+  {name:"Violet",   hex:"#7a5b9e"},
+  {name:"Rose",     hex:"#c96f8f"},
+  {name:"Clay",     hex:"#a8663c"},
+  {name:"Moss",     hex:"#8a8a3d"}
+];
+
+var state = {
+  entries: [],
+  tab: "song",
+  search: "",
+  sort: "created-desc",
+  tagFilter: {},   // per tab: {song:Set, poem:Set}
+  colorFilter: {},
+  editingId: null,
+  draftTags: [],
+  draftColor: COLORS[0].hex
+};
+state.tagFilter = {song:new Set(), poem:new Set()};
+state.colorFilter = {song:new Set(), poem:new Set()};
+
+/* ---------- storage ---------- */
+function load(){
+  try{
+    var raw = localStorage.getItem(STORE_KEY);
+    if(raw){
+      var data = JSON.parse(raw);
+      if(data && Array.isArray(data.entries)) state.entries = data.entries;
+    }
+  }catch(e){ console.error(e); }
+}
+function save(){
+  try{
+    localStorage.setItem(STORE_KEY, JSON.stringify({version:1, entries:state.entries}));
+  }catch(e){
+    toast("Could not save — storage may be full");
+  }
+}
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+
+/* ---------- helpers ---------- */
+function $(id){ return document.getElementById(id); }
+function charCount(s){ return (s||"").length; }
+function wordCount(s){
+  s = (s||"").trim();
+  return s ? s.split(/\s+/).length : 0;
+}
+function fmtDate(ts){
+  var d = new Date(ts);
+  return d.toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"});
+}
+function esc(s){
+  return (s||"").replace(/[&<>"']/g,function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+  });
+}
+function toast(msg){
+  var t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(t._h);
+  t._h = setTimeout(function(){ t.classList.remove("show"); }, 2200);
+}
+function allTagsFor(type){
+  var set = new Set();
+  state.entries.forEach(function(e){
+    if(e.type===type) (e.tags||[]).forEach(function(t){ set.add(t); });
+  });
+  return Array.from(set).sort(function(a,b){ return a.localeCompare(b); });
+}
+function colorsInUse(type){
+  var set = new Set();
+  state.entries.forEach(function(e){ if(e.type===type && e.color) set.add(e.color); });
+  return Array.from(set);
+}
+function colorName(hex){
+  var c = COLORS.find(function(c){ return c.hex===hex; });
+  return c ? c.name : hex;
+}
+
+/* ---------- list rendering ---------- */
+function visibleEntries(){
+  var q = state.search.trim().toLowerCase();
+  var tags = state.tagFilter[state.tab];
+  var cols = state.colorFilter[state.tab];
+  var list = state.entries.filter(function(e){
+    if(e.type !== state.tab) return false;
+    if(q){
+      var hay = (e.title+" "+e.body+" "+(e.tags||[]).join(" ")).toLowerCase();
+      if(hay.indexOf(q) === -1) return false;
+    }
+    if(tags.size){
+      var etags = e.tags||[];
+      var hit = etags.some(function(t){ return tags.has(t); });
+      if(!hit) return false;
+    }
+    if(cols.size && !cols.has(e.color)) return false;
+    return true;
+  });
+  var s = state.sort;
+  list.sort(function(a,b){
+    switch(s){
+      case "created-asc":  return a.created - b.created;
+      case "created-desc": return b.created - a.created;
+      case "updated-desc": return b.updated - a.updated;
+      case "title-asc":    return a.title.localeCompare(b.title);
+      case "title-desc":   return b.title.localeCompare(a.title);
+      case "chars-asc":    return charCount(a.body) - charCount(b.body);
+      case "chars-desc":   return charCount(b.body) - charCount(a.body);
+    }
+    return 0;
+  });
+  return list;
+}
+
+function renderFilters(){
+  var tagWrap = $("tagFilters"), colWrap = $("colorFilters");
+  var tags = allTagsFor(state.tab);
+  var cols = colorsInUse(state.tab);
+  var activeTags = state.tagFilter[state.tab];
+  var activeCols = state.colorFilter[state.tab];
+
+  // prune filters for tags/colours that no longer exist
+  activeTags.forEach(function(t){ if(tags.indexOf(t)===-1) activeTags.delete(t); });
+  activeCols.forEach(function(c){ if(cols.indexOf(c)===-1) activeCols.delete(c); });
+
+  tagWrap.querySelectorAll(".chip").forEach(function(n){ n.remove(); });
+  tags.forEach(function(t){
+    var b = document.createElement("button");
+    b.className = "chip";
+    b.textContent = t;
+    b.setAttribute("aria-pressed", activeTags.has(t) ? "true":"false");
+    b.addEventListener("click", function(){
+      activeTags.has(t) ? activeTags.delete(t) : activeTags.add(t);
+      render();
+    });
+    tagWrap.appendChild(b);
+  });
+  tagWrap.hidden = tags.length===0;
+
+  colWrap.querySelectorAll(".swatch").forEach(function(n){ n.remove(); });
+  cols.forEach(function(c){
+    var b = document.createElement("button");
+    b.className = "swatch";
+    b.style.background = c;
+    b.title = colorName(c);
+    b.setAttribute("aria-label","Filter by colour "+colorName(c));
+    b.setAttribute("aria-pressed", activeCols.has(c) ? "true":"false");
+    b.addEventListener("click", function(){
+      activeCols.has(c) ? activeCols.delete(c) : activeCols.add(c);
+      render();
+    });
+    colWrap.appendChild(b);
+  });
+  colWrap.hidden = cols.length===0;
+
+  $("clearRow").hidden = !(activeTags.size || activeCols.size || state.search);
+}
+
+function render(){
+  renderFilters();
+  var list = visibleEntries();
+  var ul = $("entryList");
+  ul.innerHTML = "";
+  list.forEach(function(e){
+    var li = document.createElement("li");
+    var btn = document.createElement("button");
+    btn.className = "card";
+    btn.setAttribute("aria-label","Open "+(e.title||"Untitled"));
+    var tagsHtml = (e.tags||[]).map(function(t){ return '<span class="tag">'+esc(t)+'</span>'; }).join("");
+    var preview = (e.body||"").split("\n").find(function(l){ return l.trim(); }) || "";
+    btn.innerHTML =
+      '<span class="spine" style="background:'+esc(e.color||COLORS[0].hex)+'"></span>'+
+      '<span class="card-body">'+
+        '<h3>'+esc(e.title||"Untitled")+'</h3>'+
+        (preview ? '<div class="preview">'+esc(preview)+'</div>' : "")+
+        '<div class="meta">'+
+          '<span>'+fmtDate(e.created)+'</span>'+
+          '<span>'+charCount(e.body)+' ch</span>'+
+          tagsHtml+
+        '</div>'+
+      '</span>';
+    btn.addEventListener("click", function(){ openEditor(e.id); });
+    li.appendChild(btn);
+    ul.appendChild(li);
+  });
+
+  var total = state.entries.filter(function(e){ return e.type===state.tab; }).length;
+  var empty = $("emptyState");
+  if(list.length===0){
+    empty.hidden = false;
+    empty.textContent = total===0
+      ? (state.tab==="song" ? "No songs yet. Tap + to write your first one." : "No poems yet. Tap + to write your first one.")
+      : "Nothing matches your search or filters.";
+  }else{
+    empty.hidden = true;
+  }
+  $("countLine").textContent = list.length + " of " + total + " " + (state.tab==="song"?"songs":"poems");
+}
+
+/* ---------- tabs ---------- */
+document.querySelectorAll("nav.tabs button").forEach(function(b){
+  b.addEventListener("click", function(){
+    state.tab = b.dataset.type;
+    document.querySelectorAll("nav.tabs button").forEach(function(x){
+      x.setAttribute("aria-selected", x===b ? "true":"false");
+    });
+    render();
+  });
+});
+
+/* ---------- toolbar ---------- */
+$("searchInput").addEventListener("input", function(){
+  state.search = this.value;
+  render();
+});
+$("sortSelect").addEventListener("change", function(){
+  state.sort = this.value;
+  render();
+});
+$("clearFilters").addEventListener("click", function(){
+  state.tagFilter[state.tab].clear();
+  state.colorFilter[state.tab].clear();
+  state.search = "";
+  $("searchInput").value = "";
+  render();
+});
+
+/* ---------- editor ---------- */
+function renderDraftTags(){
+  var ed = $("tagEditor");
+  ed.querySelectorAll(".tag-chip").forEach(function(n){ n.remove(); });
+  var input = $("tagInput");
+  state.draftTags.forEach(function(t){
+    var chip = document.createElement("span");
+    chip.className = "tag-chip";
+    chip.textContent = t;
+    var x = document.createElement("button");
+    x.textContent = "×";
+    x.setAttribute("aria-label","Remove tag "+t);
+    x.addEventListener("click", function(){
+      state.draftTags = state.draftTags.filter(function(v){ return v!==t; });
+      renderDraftTags();
+    });
+    chip.appendChild(x);
+    ed.insertBefore(chip, input);
+  });
+  // suggestions: existing tags in this tab not already added
+  var sug = $("tagSuggest");
+  sug.innerHTML = "";
+  allTagsFor(state.tab).filter(function(t){ return state.draftTags.indexOf(t)===-1; })
+    .slice(0,12)
+    .forEach(function(t){
+      var b = document.createElement("button");
+      b.textContent = "+ " + t;
+      b.addEventListener("click", function(){ addDraftTag(t); });
+      sug.appendChild(b);
+    });
+}
+function addDraftTag(raw){
+  var t = (raw||"").trim().replace(/,+$/,"");
+  if(!t) return;
+  if(state.draftTags.indexOf(t)===-1) state.draftTags.push(t);
+  $("tagInput").value = "";
+  renderDraftTags();
+}
+$("tagInput").addEventListener("keydown", function(ev){
+  if(ev.key==="Enter" || ev.key===","){
+    ev.preventDefault();
+    addDraftTag(this.value);
+  }else if(ev.key==="Backspace" && !this.value && state.draftTags.length){
+    state.draftTags.pop();
+    renderDraftTags();
+  }
+});
+$("tagInput").addEventListener("blur", function(){ if(this.value.trim()) addDraftTag(this.value); });
+
+function renderPalette(){
+  var p = $("palette");
+  p.innerHTML = "";
+  COLORS.forEach(function(c){
+    var b = document.createElement("button");
+    b.className = "swatch";
+    b.style.background = c.hex;
+    b.title = c.name;
+    b.setAttribute("role","radio");
+    b.setAttribute("aria-label", c.name);
+    b.setAttribute("aria-pressed", state.draftColor===c.hex ? "true":"false");
+    b.setAttribute("aria-checked", state.draftColor===c.hex ? "true":"false");
+    b.addEventListener("click", function(){
+      state.draftColor = c.hex;
+      renderPalette();
+    });
+    p.appendChild(b);
+  });
+}
+
+function updateCounts(){
+  var v = $("bodyInput").value;
+  $("charCount").textContent = charCount(v) + " characters";
+  $("wordCount").textContent = wordCount(v) + " words";
+}
+$("bodyInput").addEventListener("input", updateCounts);
+
+function openEditor(id){
+  state.editingId = id || null;
+  var e = id ? state.entries.find(function(x){ return x.id===id; }) : null;
+  $("editorTitle").textContent = e
+    ? "Edit " + (e.type==="song" ? "Song" : "Poem")
+    : "New " + (state.tab==="song" ? "Song" : "Poem");
+  $("titleInput").value = e ? e.title : "";
+  $("bodyInput").value = e ? e.body : "";
+  state.draftTags = e ? (e.tags||[]).slice() : [];
+  state.draftColor = e ? (e.color||COLORS[0].hex) : COLORS[0].hex;
+  $("dangerZone").hidden = !e;
+  renderDraftTags();
+  renderPalette();
+  updateCounts();
+  $("editor").classList.add("open");
+  document.body.style.overflow = "hidden";
+  if(!e) setTimeout(function(){ $("titleInput").focus(); }, 60);
+}
+function closeEditor(){
+  $("editor").classList.remove("open");
+  document.body.style.overflow = "";
+  state.editingId = null;
+}
+$("fabBtn").addEventListener("click", function(){ openEditor(null); });
+$("cancelBtn").addEventListener("click", closeEditor);
+$("saveBtn").addEventListener("click", function(){
+  if($("tagInput").value.trim()) addDraftTag($("tagInput").value);
+  var title = $("titleInput").value.trim();
+  var body = $("bodyInput").value;
+  if(!title && !body.trim()){ toast("Nothing to save yet"); return; }
+  var now = Date.now();
+  if(state.editingId){
+    var e = state.entries.find(function(x){ return x.id===state.editingId; });
+    if(e){
+      e.title = title || "Untitled";
+      e.body = body;
+      e.tags = state.draftTags.slice();
+      e.color = state.draftColor;
+      e.updated = now;
+    }
+  }else{
+    state.entries.push({
+      id: uid(),
+      type: state.tab,
+      title: title || "Untitled",
+      body: body,
+      tags: state.draftTags.slice(),
+      color: state.draftColor,
+      created: now,
+      updated: now
+    });
+  }
+  save();
+  closeEditor();
+  render();
+  toast("Saved");
+});
+$("deleteBtn").addEventListener("click", function(){
+  if(!state.editingId) return;
+  if(!confirm("Delete this entry? This can't be undone.")) return;
+  state.entries = state.entries.filter(function(x){ return x.id!==state.editingId; });
+  save();
+  closeEditor();
+  render();
+  toast("Deleted");
+});
+
+/* ---------- menu / backup ---------- */
+$("menuBtn").addEventListener("click", function(ev){
+  ev.stopPropagation();
+  var pop = $("menuPop");
+  var open = pop.classList.toggle("open");
+  this.setAttribute("aria-expanded", open ? "true":"false");
+});
+document.addEventListener("click", function(){
+  $("menuPop").classList.remove("open");
+  $("menuBtn").setAttribute("aria-expanded","false");
+});
+$("exportBtn").addEventListener("click", function(){
+  var blob = new Blob([JSON.stringify({version:1, exported:new Date().toISOString(), entries:state.entries}, null, 2)], {type:"application/json"});
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "composition-book-backup-" + new Date().toISOString().slice(0,10) + ".json";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
+});
+$("importBtn").addEventListener("click", function(){ $("importFile").click(); });
+$("importFile").addEventListener("change", function(){
+  var f = this.files[0];
+  this.value = "";
+  if(!f) return;
+  var reader = new FileReader();
+  reader.onload = function(){
+    try{
+      var data = JSON.parse(reader.result);
+      var incoming = Array.isArray(data) ? data : data.entries;
+      if(!Array.isArray(incoming)) throw new Error("bad format");
+      var byId = {};
+      state.entries.forEach(function(e){ byId[e.id] = true; });
+      var added = 0;
+      incoming.forEach(function(e){
+        if(!e || typeof e!=="object") return;
+        if(!e.id || byId[e.id]){ e = Object.assign({}, e, {id:uid()}); }
+        state.entries.push({
+          id: e.id, type: e.type==="poem"?"poem":"song",
+          title: String(e.title||"Untitled"),
+          body: String(e.body||""),
+          tags: Array.isArray(e.tags) ? e.tags.map(String) : [],
+          color: typeof e.color==="string" ? e.color : COLORS[0].hex,
+          created: Number(e.created)||Date.now(),
+          updated: Number(e.updated)||Date.now()
+        });
+        added++;
+      });
+      save();
+      render();
+      toast("Imported " + added + " entr" + (added===1?"y":"ies"));
+    }catch(err){
+      toast("Import failed — not a valid backup file");
+    }
+  };
+  reader.readAsText(f);
+});
+
+/* ---------- init ---------- */
+load();
+render();
+
+if("serviceWorker" in navigator){
+  window.addEventListener("load", function(){
+    navigator.serviceWorker.register("sw.js").catch(function(e){ console.warn("SW failed", e); });
+  });
+}
+})();
+</script>
+</body>
+</html>
