@@ -32,13 +32,20 @@
   --safe-bottom:env(safe-area-inset-bottom,0px);
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html{-webkit-text-size-adjust:100%}
+html{-webkit-text-size-adjust:100%;height:100%;overflow:hidden}
 body{
   font-family:var(--body);
   background:var(--paper);
   color:var(--ink);
-  min-height:100vh;
-  overscroll-behavior-y:none;
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100vh;
+  height:100dvh;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  overscroll-behavior:none;
 }
 button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--margin-red);outline-offset:2px}
@@ -47,6 +54,7 @@ input,select,textarea{font:inherit;color:inherit}
 /* ---------- Marble cover header ---------- */
 header.cover{
   position:relative;
+  flex-shrink:0;
   background:var(--ink);
   padding:calc(10px + var(--safe-top)) 16px 14px;
   color:var(--marble-white);
@@ -118,6 +126,7 @@ header.cover .marble{
 
 /* ---------- Tabs ---------- */
 nav.tabs{
+  flex-shrink:0;
   display:flex;
   background:var(--ink);
   padding:0 16px;
@@ -149,9 +158,13 @@ nav.tabs button[aria-selected="true"]{
 
 /* ---------- Toolbar ---------- */
 .toolbar{
+  flex-shrink:0;
+  width:100%;
   max-width:720px;margin:0 auto;
   padding:14px 16px 6px;
   display:flex;flex-direction:column;gap:10px;
+  max-height:42dvh;
+  overflow-y:auto;
 }
 .search-row{display:flex;gap:8px}
 .search-row input[type="search"]{
@@ -217,7 +230,16 @@ nav.tabs button[aria-selected="true"]{
 }
 
 /* ---------- Entry list ---------- */
-main{max-width:720px;margin:0 auto;padding:8px 16px calc(96px + var(--safe-bottom))}
+main{
+  flex:1 1 0;
+  min-height:0;
+  width:100%;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+  padding:8px 16px calc(96px + var(--safe-bottom));
+}
+ul.entries,.empty{max-width:720px;margin:0 auto}
 ul.entries{list-style:none;display:flex;flex-direction:column;gap:12px}
 .card{
   position:relative;
@@ -354,6 +376,7 @@ ul.entries{list-style:none;display:flex;flex-direction:column;gap:12px}
 .sheet textarea{
   width:100%;
   min-height:46vh;
+  min-height:42dvh;
   resize:vertical;
   border:1px solid #d8d2bf;
   border-radius:4px;
@@ -412,6 +435,55 @@ ul.entries{list-style:none;display:flex;flex-direction:column;gap:12px}
   padding:9px 18px;
 }
 
+/* sync modal */
+.modal{
+  position:fixed;inset:0;
+  background:rgba(26,26,30,.55);
+  z-index:65;
+  display:none;align-items:flex-end;justify-content:center;
+}
+.modal.open{display:flex}
+.modal .panel{
+  background:var(--paper);
+  width:100%;max-width:560px;
+  border-radius:14px 14px 0 0;
+  padding:20px 18px calc(20px + var(--safe-bottom));
+  max-height:88dvh;overflow-y:auto;
+}
+.panel h2{
+  font-family:var(--display);font-size:16px;
+  letter-spacing:.08em;text-transform:uppercase;
+  margin-bottom:8px;
+}
+.sync-note{font-size:13.5px;line-height:1.55;color:#3d3a33}
+.sync-status{
+  font-family:var(--mono);font-size:11.5px;color:var(--pencil);
+  margin-top:10px;min-height:1em;
+}
+.panel input{
+  width:100%;
+  background:var(--plaque);
+  border:1px solid var(--pencil);
+  border-radius:8px;
+  padding:10px 12px;
+  font-size:15px;
+  font-family:var(--mono);
+}
+.sync-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.sync-actions button{
+  font-family:var(--mono);font-size:12.5px;
+  border:1px solid var(--ink);border-radius:8px;
+  padding:9px 14px;background:var(--plaque);
+}
+.sync-actions button.primary{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.sync-actions button.danger{color:var(--margin-red);border-color:var(--margin-red)}
+.sync-actions button:disabled{opacity:.5}
+.close-sync{
+  display:block;margin:16px auto 0;
+  font-family:var(--mono);font-size:12.5px;
+  color:var(--pencil);text-decoration:underline;
+}
+
 /* toast */
 .toast{
   position:fixed;left:50%;bottom:calc(92px + var(--safe-bottom));
@@ -449,6 +521,7 @@ ul.entries{list-style:none;display:flex;flex-direction:column;gap:12px}
     <button class="menu-btn" id="menuBtn" aria-label="Menu" aria-expanded="false">⋮</button>
   </div>
   <div class="menu-pop" id="menuPop" role="menu">
+    <button id="syncBtn" role="menuitem">Gist sync…</button>
     <button id="exportBtn" role="menuitem">Export backup (JSON)</button>
     <button id="importBtn" role="menuitem">Import backup</button>
   </div>
@@ -527,6 +600,30 @@ ul.entries{list-style:none;display:flex;flex-direction:column;gap:12px}
   </div>
 </div>
 
+<!-- Gist sync -->
+<div class="modal" id="syncModal" role="dialog" aria-modal="true" aria-labelledby="syncTitle">
+  <div class="panel">
+    <h2 id="syncTitle">Gist Sync</h2>
+    <p class="sync-note">
+      Backs your entries up to a private GitHub Gist, so even a full browser-data clear can't lose them.
+      Create a token at GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic),
+      ticking only the <b>gist</b> scope. Keep the token in a password manager — you'll re-paste it here after a clear.
+    </p>
+    <div class="sync-status" id="syncStatus"></div>
+    <div class="field-label">Personal access token</div>
+    <input type="password" id="tokenInput" autocomplete="off" placeholder="ghp_…">
+    <div class="field-label">Gist ID — leave blank to create a new gist</div>
+    <input type="text" id="gistIdInput" autocomplete="off" autocapitalize="none" placeholder="e.g. 4f3c2a…">
+    <div class="sync-actions">
+      <button id="connectBtn" class="primary">Save &amp; connect</button>
+      <button id="pushBtn">Push now</button>
+      <button id="pullBtn">Pull now</button>
+      <button id="disconnectBtn" class="danger">Disconnect</button>
+    </div>
+    <button id="closeSyncBtn" class="close-sync">Close</button>
+  </div>
+</div>
+
 <div class="toast" id="toast" role="status"></div>
 
 <script>
@@ -571,12 +668,13 @@ function load(){
     }
   }catch(e){ console.error(e); }
 }
-function save(){
+function save(skipSync){
   try{
     localStorage.setItem(STORE_KEY, JSON.stringify({version:1, entries:state.entries}));
   }catch(e){
     toast("Could not save — storage may be full");
   }
+  if(!skipSync) schedulePush();
 }
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
 
@@ -931,6 +1029,7 @@ $("exportBtn").addEventListener("click", function(){
   a.click();
   a.remove();
   setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
+  try{ localStorage.setItem("compbook.lastExport", String(Date.now())); }catch(e){}
 });
 $("importBtn").addEventListener("click", function(){ $("importFile").click(); });
 $("importFile").addEventListener("change", function(){
@@ -970,9 +1069,173 @@ $("importFile").addEventListener("change", function(){
   reader.readAsText(f);
 });
 
+/* ---------- Gist sync ---------- */
+var SYNC_KEY = "compbook.sync";
+var GIST_FILE = "composition-book.json";
+var pushTimer = null;
+
+function getSync(){
+  try{ return JSON.parse(localStorage.getItem(SYNC_KEY)) || null; }catch(e){ return null; }
+}
+function setSyncCfg(cfg){
+  try{
+    if(cfg) localStorage.setItem(SYNC_KEY, JSON.stringify(cfg));
+    else localStorage.removeItem(SYNC_KEY);
+  }catch(e){}
+  updateSyncStatus();
+}
+function gistHeaders(token){
+  return {
+    "Authorization":"Bearer "+token,
+    "Accept":"application/vnd.github+json",
+    "Content-Type":"application/json"
+  };
+}
+function payload(){
+  return JSON.stringify({version:1, updated:new Date().toISOString(), entries:state.entries}, null, 1);
+}
+function schedulePush(){
+  var s = getSync();
+  if(!s || !s.token || !s.gistId) return;
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(function(){ pushGist(true); }, 2500);
+}
+function pushGist(silent){
+  var s = getSync();
+  if(!s || !s.token || !s.gistId){ if(!silent) toast("Sync isn't set up yet"); return; }
+  var files = {}; files[GIST_FILE] = {content: payload()};
+  fetch("https://api.github.com/gists/"+s.gistId, {
+    method:"PATCH",
+    headers:gistHeaders(s.token),
+    body:JSON.stringify({files:files})
+  }).then(function(r){
+    if(r.status===401) throw new Error("Token was rejected — check it in Gist sync");
+    if(r.status===404) throw new Error("Gist not found — check the Gist ID");
+    if(!r.ok) throw new Error("Push failed ("+r.status+")");
+    if(!silent) toast("Pushed to Gist");
+    updateSyncStatus("pushed just now");
+  }).catch(function(err){
+    if(!silent || /rejected|not found/.test(err.message||"")) toast(err.message || "Push failed — are you online?");
+  });
+}
+function pullGist(auto){
+  var s = getSync();
+  if(!s || !s.token || !s.gistId){ if(!auto) toast("Sync isn't set up yet"); return; }
+  fetch("https://api.github.com/gists/"+s.gistId, {headers:gistHeaders(s.token)})
+  .then(function(r){
+    if(r.status===401) throw new Error("Token was rejected — check it in Gist sync");
+    if(r.status===404) throw new Error("Gist not found — check the Gist ID");
+    if(!r.ok) throw new Error("Pull failed ("+r.status+")");
+    return r.json();
+  })
+  .then(function(g){
+    var f = g.files && g.files[GIST_FILE];
+    if(!f) throw new Error("No composition data in that gist");
+    if(f.truncated) return fetch(f.raw_url).then(function(rr){ return rr.text(); });
+    return f.content;
+  })
+  .then(function(text){
+    var data = JSON.parse(text);
+    if(!data || !Array.isArray(data.entries)) throw new Error("Gist data looks invalid");
+    if(!auto && state.entries.length &&
+       !confirm("Replace the "+state.entries.length+" entries on this device with the "+data.entries.length+" in the Gist?")) return;
+    state.entries = data.entries;
+    save(true);
+    render();
+    toast((auto ? "Restored " : "Pulled ") + data.entries.length + " entr" + (data.entries.length===1?"y":"ies") + " from Gist");
+  })
+  .catch(function(err){ if(!auto) toast(err.message || "Pull failed — are you online?"); });
+}
+function updateSyncStatus(extra){
+  var el = $("syncStatus");
+  if(!el) return;
+  var s = getSync();
+  el.textContent = (s && s.gistId)
+    ? "Connected · gist " + s.gistId + (extra ? " · " + extra : "")
+    : "Not connected";
+}
+function openSync(){
+  var s = getSync() || {};
+  $("tokenInput").value = s.token || "";
+  $("gistIdInput").value = s.gistId || "";
+  updateSyncStatus();
+  $("syncModal").classList.add("open");
+}
+$("syncBtn").addEventListener("click", openSync);
+$("closeSyncBtn").addEventListener("click", function(){ $("syncModal").classList.remove("open"); });
+$("syncModal").addEventListener("click", function(ev){ if(ev.target===this) this.classList.remove("open"); });
+$("connectBtn").addEventListener("click", function(){
+  var btn = this;
+  var token = $("tokenInput").value.trim();
+  var gistId = $("gistIdInput").value.trim().replace(/^.*gist\.github\.com\/(?:[^\/]+\/)?/,"");
+  if(!token){ toast("Paste a token first"); return; }
+  btn.disabled = true;
+  function done(){ btn.disabled = false; }
+  if(gistId){
+    fetch("https://api.github.com/gists/"+gistId, {headers:gistHeaders(token)})
+    .then(function(r){
+      if(r.status===401) throw new Error("Token was rejected — does it have the gist scope?");
+      if(r.status===404) throw new Error("Gist not found — check the ID");
+      if(!r.ok) throw new Error("Could not reach GitHub ("+r.status+")");
+      setSyncCfg({token:token, gistId:gistId});
+      $("gistIdInput").value = gistId;
+      toast("Connected");
+      if(state.entries.length===0) pullGist(true);
+      else schedulePush();
+      done();
+    })
+    .catch(function(err){ toast(err.message); done(); });
+  }else{
+    var files = {}; files[GIST_FILE] = {content: payload()};
+    fetch("https://api.github.com/gists", {
+      method:"POST",
+      headers:gistHeaders(token),
+      body:JSON.stringify({description:"Composition Book data", public:false, files:files})
+    })
+    .then(function(r){
+      if(r.status===401) throw new Error("Token was rejected — does it have the gist scope?");
+      if(!r.ok) throw new Error("Could not create gist ("+r.status+")");
+      return r.json();
+    })
+    .then(function(g){
+      setSyncCfg({token:token, gistId:g.id});
+      $("gistIdInput").value = g.id;
+      toast("Gist created & connected");
+      done();
+    })
+    .catch(function(err){ toast(err.message); done(); });
+  }
+});
+$("pushBtn").addEventListener("click", function(){ pushGist(false); });
+$("pullBtn").addEventListener("click", function(){ pullGist(false); });
+$("disconnectBtn").addEventListener("click", function(){
+  if(confirm("Forget the token and Gist ID on this device? The gist itself is untouched.")){
+    setSyncCfg(null);
+    $("tokenInput").value = "";
+    $("gistIdInput").value = "";
+    toast("Disconnected");
+  }
+});
+
 /* ---------- init ---------- */
 load();
 render();
+
+// If sync is configured and this device is empty (e.g. after a data clear + reconnect), restore automatically
+(function(){
+  var s = getSync();
+  if(s && s.gistId && state.entries.length===0) pullGist(true);
+})();
+
+// Nudge to back up: entries exist, no Gist sync, and no export in the last 14 days
+try{
+  if(state.entries.length && !getSync()){
+    var lastExport = Number(localStorage.getItem("compbook.lastExport") || 0);
+    if(Date.now() - lastExport > 14*24*60*60*1000){
+      setTimeout(function(){ toast("Tip: export a backup from the \u22EE menu"); }, 1500);
+    }
+  }
+}catch(e){}
 
 if("serviceWorker" in navigator){
   window.addEventListener("load", function(){

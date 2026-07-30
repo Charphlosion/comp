@@ -1,48 +1,64 @@
-/* Minimal offline-first service worker.
-   Change CACHE_NAME (bump the version number) whenever you update the app,
-   so phones fetch the new version instead of serving the old cache forever. */
-
-const CACHE_NAME = 'app-cache-v1';
-
-const ASSETS = [
-  './',
-  './index.html',
-  './manifest.json',
-  './icon-192.png',
-  './icon-512.png'
+/* Composition Book service worker — offline-first app shell */
+var CACHE = "compbook-v3";
+var SHELL = [
+  "./",
+  "index.html",
+  "manifest.json",
+  "icon-192.png",
+  "icon-512.png"
 ];
 
-self.addEventListener('install', (event) => {
+self.addEventListener("install", function (event) {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
-  );
-  self.skipWaiting();
-});
-
-self.addEventListener('activate', (event) => {
-  // Delete old caches from previous versions
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    ).then(() => self.clients.claim())
+    caches.open(CACHE).then(function (cache) {
+      return cache.addAll(SHELL);
+    }).then(function () {
+      return self.skipWaiting();
+    })
   );
 });
 
-self.addEventListener('fetch', (event) => {
-  // Cache-first: serve from cache, fall back to network,
-  // and quietly refresh the cache in the background when online.
+self.addEventListener("activate", function (event) {
+  event.waitUntil(
+    caches.keys().then(function (keys) {
+      return Promise.all(
+        keys.filter(function (k) { return k !== CACHE; })
+            .map(function (k) { return caches.delete(k); })
+      );
+    }).then(function () {
+      return self.clients.claim();
+    })
+  );
+});
+
+self.addEventListener("fetch", function (event) {
+  if (event.request.method !== "GET") return;
+
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const fetchAndUpdate = fetch(event.request)
-        .then((response) => {
-          if (response && response.ok && event.request.method === 'GET') {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+    caches.match(event.request, { ignoreSearch: true }).then(function (cached) {
+      if (cached) {
+        // Refresh the cached copy in the background
+        fetch(event.request).then(function (fresh) {
+          if (fresh && fresh.status === 200) {
+            caches.open(CACHE).then(function (cache) {
+              cache.put(event.request, fresh);
+            });
           }
-          return response;
-        })
-        .catch(() => cached); // offline: fall back to whatever we have
-      return cached || fetchAndUpdate;
+        }).catch(function () {});
+        return cached;
+      }
+      return fetch(event.request).then(function (response) {
+        // Cache fonts and other successful same-origin/opaque GETs for offline use
+        if (response && (response.status === 200 || response.type === "opaque")) {
+          var copy = response.clone();
+          caches.open(CACHE).then(function (cache) {
+            cache.put(event.request, copy);
+          });
+        }
+        return response;
+      }).catch(function () {
+        return caches.match("index.html");
+      });
     })
   );
 });
