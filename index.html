@@ -196,6 +196,7 @@ nav.tabs button[aria-selected="true"]{
   overflow-y:auto;
   overscroll-behavior:contain;
 }
+.filter-panel > *{flex:0 0 auto}
 .search-row{display:flex;gap:8px}
 .search-row input[type="search"]{
   flex:1;
@@ -217,12 +218,14 @@ nav.tabs button[aria-selected="true"]{
 }
 .filter-row{
   display:flex;flex-wrap:wrap;gap:6px;align-items:center;
-  min-height:0;
+  flex-shrink:0;
+  width:100%;
 }
 .filter-label{
+  flex:0 0 100%;
   font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;
   text-transform:uppercase;color:var(--pencil);
-  margin-right:2px;
+  margin-bottom:2px;
 }
 .chip{
   font-family:var(--mono);
@@ -744,7 +747,9 @@ function allTagsFor(type){
   state.entries.forEach(function(e){
     if(e.type===type) (e.tags||[]).forEach(function(t){ set.add(t); });
   });
-  return Array.from(set).sort(function(a,b){ return a.localeCompare(b); });
+  return Array.from(set).sort(function(a,b){
+    return a.toLowerCase().localeCompare(b.toLowerCase()) || a.localeCompare(b);
+  });
 }
 function colorsInUse(type){
   var set = new Set();
@@ -951,9 +956,18 @@ function renderDraftTags(){
     });
 }
 function addDraftTag(raw){
-  var t = (raw||"").trim().replace(/,+$/,"");
+  var t = (raw||"").trim().replace(/,+$/,"").replace(/\s+/g," ");
   if(!t) return;
-  if(state.draftTags.indexOf(t)===-1) state.draftTags.push(t);
+  // Reuse the existing spelling if this tag already exists in any casing
+  var existing = null;
+  state.entries.forEach(function(e){
+    (e.tags||[]).forEach(function(x){
+      if(!existing && x.toLowerCase()===t.toLowerCase()) existing = x;
+    });
+  });
+  if(existing) t = existing;
+  var dupe = state.draftTags.some(function(v){ return v.toLowerCase()===t.toLowerCase(); });
+  if(!dupe) state.draftTags.push(t);
   $("tagInput").value = "";
   renderDraftTags();
 }
