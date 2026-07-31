@@ -1,5 +1,5 @@
 /* Composition Book service worker — offline-first app shell */
-var CACHE = "compbook-v3";
+var CACHE = "compbook-v4";
 var SHELL = [
   "./",
   "index.html",
